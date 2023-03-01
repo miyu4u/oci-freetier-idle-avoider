@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sysbench-execution
+  labels:
+    app: sysbench-execution
+  annotations:
+    command: &cmd sysbench --test=cpu --time=10800 --cpu-max-prime=1000 --threads=1 run
+spec:
+  selector:
+    matchLabels:
+      app: sysbench-execution
+  template:
+    metadata:
+      labels:
+        app: sysbench-execution
+    spec:
+      containers:
+        - name: sysbench
+          image: chiyuu/sysbench
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          command: ["sh", "-c", *cmd]

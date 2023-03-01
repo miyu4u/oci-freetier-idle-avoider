@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sysbench-execution
+  labels:
+    jobgroup: sysbench-execution
+  annotations:
+    command: &cmd sysbench --test=cpu --time=10800 --cpu-max-prime=1000 --threads=1 run
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      parallelism: 6
+      completions: 6
+      template:
+        metadata:
+          name: sysbench-execution
+          labels:
+            jobgroup: sysbench-execution
+        spec:
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchExpressions:
+                      - key: name
+                        operator: In
+                        values:
+                          - sysbench-execution
+                  topologyKey: "kubernetes.io/hostname"
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  jobgroup: sysbench-execution
+          containers:
+            - name: sysbench-execution
+              image: chiyuu/sysbench
+              imagePullPolicy: IfNotPresent
+              resources:
+                limits:
+                  memory: "128Mi"
+                  cpu: "500m"
+              command: ["sh", "-c", *cmd]
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 0
+  concurrencyPolicy: Forbid

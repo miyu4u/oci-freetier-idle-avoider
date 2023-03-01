@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sysbench-installation
+  labels:
+    app: sysbench-installation
+  annotations:
+    command: &cmd apt install sysbench -y
+spec:
+  selector:
+    matchLabels:
+      app: sysbench-installation
+  template:
+    metadata:
+      labels:
+        app: sysbench-installation
+    spec:
+      hostNetwork: true
+      hostPID: true
+      initContainers:
+      - name: sysbench-installation
+        command:
+          - nsenter
+          - --mount=/proc/1/ns/mnt
+          - --
+          - bash
+          - -c
+          - *cmd
+        image: alpine:3.12
+        securityContext:
+          privileged: true
+      containers:
+      - name: sleep
+        image: k8s.gcr.io/pause:3.1
+  updateStrategy:
+    type: RollingUpdate
